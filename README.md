@@ -29,9 +29,9 @@ Desde Claude Code, una sola vez por máquina:
 
 Opciones:
 
-- **GitHub público/privado:** `/plugin marketplace add Mithor86/Mithor86-claude-plugins`
-- **URL completa:** `/plugin marketplace add https://github.com/Mithor86/Mithor86-claude-plugins`
-- **Ruta local** (para desarrollo): `/plugin marketplace add /ruta/absoluta/a/Mithor86-claude-plugins`
+- **GitHub público/privado:** `/plugin marketplace add Mithor86-2/pluging-cluade-gitflow-es`
+- **URL completa:** `/plugin marketplace add https://github.com/Mithor86-2/pluging-cluade-gitflow-es`
+- **Ruta local** (para desarrollo): `/plugin marketplace add /ruta/absoluta/a/pluging-cluade-gitflow-es`
 
 ### 3. Instalar el plugin
 
@@ -88,7 +88,7 @@ Si hay cambios incompatibles o no se recargan:
 ## Estructura del repo
 
 ```
-Mithor86-claude-plugins/
+pluging-cluade-gitflow-es/
 ├── .claude-plugin/
 │   └── marketplace.json                  ← catálogo del marketplace
 ├── plugins/
@@ -129,16 +129,16 @@ Para que el `/plugin marketplace add` funcione, este repo debe estar accesible p
 ### Primer push
 
 ```bash
-cd Mithor86-claude-plugins
+cd pluging-cluade-gitflow-es
 git init -b main
 git add .
 git commit -m "chore: initial release — gitflow-es v0.5.2"
 
 # Con gh CLI (recomendado)
-gh repo create Mithor86/Mithor86-claude-plugins --public --source=. --remote=origin --push
+gh repo create Mithor86-2/pluging-cluade-gitflow-es --public --source=. --remote=origin --push
 
 # O sin gh CLI
-git remote add origin git@github.com:Mithor86/Mithor86-claude-plugins.git
+git remote add origin git@github.com:Mithor86-2/pluging-cluade-gitflow-es.git
 git push -u origin main
 
 # Tag de versión
