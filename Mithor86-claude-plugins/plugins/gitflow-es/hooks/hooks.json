@@ -1,25 +1,28 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/safety-check.py\"",
-          "timeout": 10
-        }
-      ]
-    }
-  ],
-  "SessionStart": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session-context.py\"",
-          "timeout": 5
-        }
-      ]
-    }
-  ]
+  "description": "Hooks del plugin gitflow-es: safety (PreToolUse sobre Bash/Write/Edit/MultiEdit/NotebookEdit) y context (SessionStart).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/safety-check.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session-context.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }

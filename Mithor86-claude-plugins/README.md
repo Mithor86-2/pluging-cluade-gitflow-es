@@ -1,15 +1,15 @@
-# mi-equipo-claude-plugins
+# Mithor86-claude-plugins
 
-Marketplace de plugins de Claude Code para el equipo. Por ahora contiene un plugin:
+Marketplace personal de plugins de Claude Code. Por ahora contiene un plugin:
 
-- **[gitflow-es](./plugins/gitflow-es/README.md)** — Skills de Git Flow en español (`git` + `commit`).
+- **[gitflow-es](./plugins/gitflow-es/README.md)** — Skills, subagente y hooks de Git Flow en español (`git` + `commit`).
 
-## Instalación (para cada compañero)
+## Instalación
 
 ### 1. Requisitos previos
 
-- Tener Claude Code instalado.
-- Tener `git flow` instalado localmente:
+- [Claude Code](https://claude.com/claude-code) instalado.
+- `git flow` instalado localmente:
   ```bash
   # macOS
   brew install git-flow-avh
@@ -17,52 +17,78 @@ Marketplace de plugins de Claude Code para el equipo. Por ahora contiene un plug
   # Ubuntu / Debian
   sudo apt install git-flow
   ```
+- Python 3 (viene por defecto en macOS y todas las distros Linux modernas — el hook de seguridad está escrito en Python puro sin dependencias externas).
 
 ### 2. Agregar el marketplace
 
 Desde Claude Code, una sola vez por máquina:
 
 ```
-/plugin marketplace add <url-del-repo>
+/plugin marketplace add <url-o-path>
 ```
 
-Reemplaza `<url-del-repo>` por la URL de este repositorio (ej. `https://github.com/mi-equipo/mi-equipo-claude-plugins`, o una ruta local tipo `./mi-equipo-claude-plugins` si están probando sin subirlo a remoto todavía).
+Opciones:
+
+- **GitHub público/privado:** `/plugin marketplace add Mithor86/Mithor86-claude-plugins`
+- **URL completa:** `/plugin marketplace add https://github.com/Mithor86/Mithor86-claude-plugins`
+- **Ruta local** (para desarrollo): `/plugin marketplace add /ruta/absoluta/a/Mithor86-claude-plugins`
 
 ### 3. Instalar el plugin
 
 ```
-/plugin install gitflow-es@mi-equipo
+/plugin install gitflow-es@Mithor86
 ```
 
-Eso instala los dos skills (`git` y `commit`) y las rules empotradas.
+Eso instala los skills (`git` y `commit`), el subagente (`feature-doc-writer`), los hooks de seguridad y contexto, y las rules empotradas.
 
-### 4. Verificar
+### 4. Recargar y verificar
+
+```
+/reload-plugins
+```
+
+Deberías ver un resumen tipo `2 skills · 1 agents · 2 hooks` (si los hooks quedan en `0`, corre `/doctor` para ver el error).
+
+Luego:
 
 ```
 /plugin
 ```
 
-Debes ver `gitflow-es` listado como instalado. A partir de ahí, Claude activará los skills automáticamente cuando menciones ramas, commits, merges, PRs, etc.
+Debe listar `gitflow-es` como habilitado.
+
+### 5. Probar
+
+Abre Claude Code en un repo git cualquiera. Al iniciar, deberías ver un bloque `## Estado GitFlow del repo` con la rama actual. Si el repo no está inicializado con `git flow init`, el bloque lo avisa y sugiere el flujo correcto.
 
 ## Actualizar el plugin
 
 Cuando se publique una nueva versión:
 
 ```
-/plugin marketplace update mi-equipo
-/plugin install gitflow-es@mi-equipo
+/plugin marketplace update Mithor86
+/reload-plugins
+```
+
+Si hay cambios incompatibles o no se recargan:
+
+```
+/plugin uninstall gitflow-es@Mithor86
+/plugin install gitflow-es@Mithor86
+/reload-plugins
 ```
 
 ## Desinstalar
 
 ```
-/plugin uninstall gitflow-es@mi-equipo
+/plugin uninstall gitflow-es@Mithor86
+/plugin marketplace remove Mithor86
 ```
 
 ## Estructura del repo
 
 ```
-mi-equipo-claude-plugins/
+Mithor86-claude-plugins/
 ├── .claude-plugin/
 │   └── marketplace.json                  ← catálogo del marketplace
 ├── plugins/
@@ -81,23 +107,45 @@ mi-equipo-claude-plugins/
 │       │   ├── safety-check.py           ← bloquea operaciones git peligrosas
 │       │   └── session-context.py        ← imprime estado git al iniciar sesión
 │       └── README.md
+├── CHANGELOG.md
+├── LICENSE
+├── .gitignore
 └── README.md
 ```
 
 ## Cómo agregar más plugins al marketplace
 
-1. Crear una carpeta nueva en `plugins/<nombre-del-plugin>/`.
-2. Agregar `plugins/<nombre-del-plugin>/.claude-plugin/plugin.json`.
-3. Agregar la entrada correspondiente en `.claude-plugin/marketplace.json`, en el array `plugins`.
-4. Commit, push y pedir al equipo que corra `/plugin marketplace update mi-equipo`.
+1. Crear una carpeta nueva en `plugins/<nombre-del-plugin>/` con su propio `.claude-plugin/plugin.json`.
+2. Agregar la entrada correspondiente en `.claude-plugin/marketplace.json`, en el array `plugins`.
+3. Commit, push, y pedir a quien lo use que corra `/plugin marketplace update Mithor86` seguido de `/plugin install <nombre>@Mithor86`.
 
 ## Publicar el repo
 
-Para que tus compañeros puedan agregar el marketplace vía `/plugin marketplace add`, este repo debe estar accesible por git:
+Para que el `/plugin marketplace add` funcione, este repo debe estar accesible por git:
 
 - **GitHub / GitLab público** — cualquiera con la URL puede instalar.
-- **Privado** — funciona si cada persona tiene acceso al repo y `git clone` vía SSH o HTTPS anda en su terminal. Claude Code reutiliza las credenciales de git del sistema.
+- **Privado** — funciona si la persona tiene acceso y `git clone` vía SSH o HTTPS anda en su terminal. Claude Code reutiliza las credenciales de git del sistema.
+
+### Primer push
+
+```bash
+cd Mithor86-claude-plugins
+git init -b main
+git add .
+git commit -m "chore: initial release — gitflow-es v0.5.2"
+
+# Con gh CLI (recomendado)
+gh repo create Mithor86/Mithor86-claude-plugins --public --source=. --remote=origin --push
+
+# O sin gh CLI
+git remote add origin git@github.com:Mithor86/Mithor86-claude-plugins.git
+git push -u origin main
+
+# Tag de versión
+git tag -a v0.5.2 -m "Release 0.5.2"
+git push origin v0.5.2
+```
 
 ## Licencia
 
-MIT.
+MIT — ver [LICENSE](./LICENSE).

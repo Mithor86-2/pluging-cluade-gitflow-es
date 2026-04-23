@@ -17,7 +17,7 @@ Y las **rules** que ambos skills comparten (fuente única de verdad del flujo):
 Y dos **hooks** que refuerzan el flujo a nivel mecánico (no dependen de que Claude recuerde las reglas):
 
 - **`PreToolUse` safety hook** — intercepta comandos Bash antes de ejecutarse y bloquea operaciones git peligrosas (ver sección "Safety hook" abajo).
-- **`SessionStart` context hook** — al abrir Claude Code en un repo git, imprime un resumen del estado: rama actual, tipo GitFlow, cambios pendientes, ahead/behind respecto a origin.
+- **`SessionStart` context hook** — al abrir Claude Code en un repo git, imprime un resumen del estado: rama actual, tipo GitFlow, cambios pendientes, ahead/behind respecto a origin. Si detecta que el repo no tiene `git flow init`, sugiere correrlo antes de arrancar.
 
 Y un **subagente** que delega una tarea específica a un contexto aislado:
 
@@ -52,8 +52,11 @@ El hook `PreToolUse` corre antes de cada comando Bash y antes de cada edición d
 | `git reset --hard` | Destruye cambios sin aviso |
 | `git clean -f` / `-fd` / `-xf` | Elimina archivos sin confirmación (usar `-n` para previsualizar) |
 | `git add` / `git commit` con `.env`, `id_rsa`, `credentials.json`, `.pem`, etc. | Previene leaks de credenciales |
+| `git flow feature/hotfix/release/support start/finish` en un repo que no tiene `git flow init` | Evita errores confusos de git-flow; el hook sugiere correr `git flow init -d` primero |
 
 Cuando bloquea, el hook devuelve un mensaje claro en español indicando qué violó y sugiriendo la alternativa correcta. **`develop` no está en la lista de ramas protegidas para edición** — las ediciones en `develop` se permiten para respetar la excepción documentada "Commit directo en develop" que el skill `git` maneja cuando el usuario lo solicita explícitamente.
+
+**Excepción para repos recién inicializados:** si el repo todavía no tiene commits, el hook permite editar archivos y hacer el primer `git commit` en `main`/`master` — es la única forma de crear el commit inicial antes de poder ramificar. A partir del segundo commit vuelve a aplicar la regla normal.
 
 El usuario siempre puede correr el comando o hacer la edición directamente en su terminal / editor si realmente lo necesita — el hook solo aplica a las acciones de Claude.
 

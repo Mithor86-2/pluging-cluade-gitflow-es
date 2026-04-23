@@ -37,6 +37,25 @@ def in_git_repo() -> bool:
     return run(["git", "rev-parse", "--is-inside-work-tree"]) == "true"
 
 
+def gitflow_initialized() -> bool:
+    """True si el repo tiene git-flow inicializado (config gitflow.branch.develop)."""
+    return bool(run(["git", "config", "--get", "gitflow.branch.develop"]))
+
+
+def repo_has_commits() -> bool:
+    """True si el repo tiene al menos un commit."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--verify", "--quiet", "HEAD"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=3,
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
 def branch_type(branch: str) -> Optional[str]:
     """Detecta el tipo GitFlow a partir del prefijo."""
     prefixes = {
@@ -77,6 +96,34 @@ def main() -> None:
     if not in_git_repo():
         return  # Sin salida = no se inyecta nada
 
+    # Caso especial: repo recién inicializado sin commits.
+    # No tiene sentido mostrar "rama actual" con ahead/behind; guiamos al
+    # usuario hacia el primer commit y luego hacia `git flow init -d`.
+    if not repo_has_commits():
+        out = [
+            "## Estado GitFlow del repo",
+            "",
+            "### ⚠️ Repo recién inicializado (sin commits)",
+            "",
+            "Este repo todavía no tiene ningún commit. Git necesita al menos "
+            "un commit inicial antes de poder crear ramas o inicializar "
+            "git-flow.",
+            "",
+            "**Flujo sugerido** (proponérselo al usuario, pedir OK y ejecutar):",
+            "",
+            "```bash",
+            "git add .",
+            'git commit -m "chore: initial commit"',
+            "git flow init -d",
+            "```",
+            "",
+            "El hook de safety permite este primer commit en `main`/`master` "
+            "como excepción explícita. A partir del segundo commit vuelve a "
+            "aplicar la regla normal (solo commits desde ramas de trabajo).",
+        ]
+        print("\n".join(out))
+        return
+
     branch = run(["git", "branch", "--show-current"]) or "(detached HEAD)"
     kind = branch_type(branch)
     status_lines = run(["git", "status", "--porcelain"]) or ""
@@ -113,6 +160,33 @@ def main() -> None:
             out.append(f"- {behind} commit(s) por detrás de `origin`")
         else:
             out.append(f"- Divergida: {ahead} adelante / {behind} atrás de `origin`")
+
+    # Aviso si git-flow no está inicializado (tono proactivo: Claude puede
+    # ofrecer correr `git flow init -d` después de pedir OK al usuario).
+    if not gitflow_initialized():
+        out.append("")
+        out.append("### ⚠️ git-flow no inicializado")
+        out.append(
+            "Este repo no tiene git-flow configurado todavía. Los subcomandos "
+            "`git flow feature|hotfix|release start/finish` no funcionarán "
+            "hasta que se inicialice."
+        )
+        out.append("")
+        out.append(
+            "**Acción sugerida:** preguntarle al usuario si quiere "
+            "inicializarlo ahora con los defaults del equipo:"
+        )
+        out.append("")
+        out.append("```bash")
+        out.append("git flow init -d")
+        out.append("```")
+        out.append("")
+        out.append(
+            "Eso configura `main` como rama de producción, `develop` como "
+            "rama de integración, y los prefijos estándar (`feature/`, "
+            "`hotfix/`, `release/`, `support/`). Si el repo aún no tiene "
+            "rama `develop`, git-flow la creará."
+        )
 
     print("\n".join(out))
 

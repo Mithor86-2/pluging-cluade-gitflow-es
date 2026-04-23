@@ -23,9 +23,11 @@ Reglas aplicadas:
     5. git reset --hard
     6. git clean -f / -fd / -xf (cualquier combinación con -f)
     7. git add/commit que incluya archivos .env o de credenciales
+    8. git flow <feature|hotfix|release|support|bugfix> <sub> en un repo
+       que no tiene git-flow inicializado (falta `git flow init`)
 
   Para Write/Edit/MultiEdit/NotebookEdit:
-    8. Cualquier edición de archivo cuando la rama del repo que contiene el
+    9. Cualquier edición de archivo cuando la rama del repo que contiene el
        archivo es main o master (develop se permite — la excepción de commit
        directo en develop la maneja el skill `git` cuando el usuario lo
        solicita explícitamente).
@@ -94,6 +96,49 @@ def current_branch(cwd: Optional[str] = None) -> Optional[str]:
         return None
 
 
+def gitflow_initialized(cwd: Optional[str] = None) -> bool:
+    """
+    Devuelve True si el repo tiene git-flow inicializado.
+    Detectado por la presencia de `gitflow.branch.develop` en la config de git,
+    que es la key que escribe `git flow init`.
+    """
+    cmd = ["git", "config", "--get", "gitflow.branch.develop"]
+    if cwd:
+        cmd = ["git", "-C", cwd, "config", "--get", "gitflow.branch.develop"]
+    try:
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=3,
+        )
+        return result.returncode == 0 and bool(result.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def repo_has_commits(cwd: Optional[str] = None) -> bool:
+    """
+    Devuelve True si el repo tiene al menos un commit en HEAD.
+    Devuelve False si HEAD está vacío (repo recién inicializado) o si algo
+    falla. Se usa para permitir el commit inicial en `main` / `master`.
+    """
+    cmd = ["git", "rev-parse", "--verify", "--quiet", "HEAD"]
+    if cwd:
+        cmd = ["git", "-C", cwd, "rev-parse", "--verify", "--quiet", "HEAD"]
+    try:
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=3,
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
 def branch_of_file(file_path: str) -> Optional[str]:
     """
     Devuelve la rama del repo git que contiene `file_path`, o None si el
@@ -142,15 +187,24 @@ def check_force_push(command: str, branch: Optional[str]) -> None:
 
 
 def check_commit_on_main(command: str, branch: Optional[str]) -> None:
-    """Bloquea git commit cuando la rama actual es main/master."""
+    """
+    Bloquea git commit cuando la rama actual es main/master.
+
+    Excepción: si el repo aún no tiene commits (primer commit), se permite
+    para poder hacer el `chore: initial commit` antes de arrancar git-flow.
+    """
     if not re.search(r"\bgit\s+commit\b", command):
         return
-    if branch in PROTECTED_BRANCHES:
-        block(
-            f"Bloqueado: commit directo en `{branch}`. El flujo del equipo "
-            f"exige trabajar en una rama (`feature/*`, `fix/*`, `hotfix/*`, "
-            f"etc.) y cerrarla con `/git finish`."
-        )
+    if branch not in PROTECTED_BRANCHES:
+        return
+    # Excepción: repo sin commits todavía — permitir el primer commit
+    if not repo_has_commits():
+        return
+    block(
+        f"Bloqueado: commit directo en `{branch}`. El flujo del equipo "
+        f"exige trabajar en una rama (`feature/*`, `fix/*`, `hotfix/*`, "
+        f"etc.) y cerrarla con `/git finish`."
+    )
 
 
 def check_no_verify(command: str, _branch: Optional[str]) -> None:
@@ -221,6 +275,45 @@ def check_sensitive_files(command: str, _branch: Optional[str]) -> None:
             )
 
 
+def check_gitflow_not_initialized(command: str, _branch: Optional[str]) -> None:
+    """
+    Bloquea `git flow <feature|hotfix|release|support> <sub>` si el repo no
+    tiene git-flow inicializado. Evita que Claude ejecute comandos que darían
+    error confuso tipo "Not a gitflow-enabled repo yet".
+
+    No bloquea `git flow init` (evidentemente, eso es lo que arregla esto).
+    No bloquea `git flow version`, `git flow help`, etc.
+    """
+    m = re.search(r"\bgit\s+flow\s+(\w+)", command)
+    if not m:
+        return
+    subcommand = m.group(1)
+
+    # Subcomandos que requieren repo inicializado
+    requires_init = {"feature", "hotfix", "release", "support", "bugfix"}
+    if subcommand not in requires_init:
+        return
+
+    if gitflow_initialized():
+        return
+
+    block(
+        "Bloqueado: este repo no tiene git-flow inicializado todavía, y el "
+        "subcomando `git flow " + subcommand + "` lo requiere.",
+        hint=(
+            "Para arreglarlo, propónle al usuario inicializar git-flow con "
+            "los defaults del equipo:\n\n"
+            "  git flow init -d\n\n"
+            "Eso configura `main` como rama de producción, `develop` como "
+            "rama de integración, y los prefijos estándar (feature/, "
+            "hotfix/, release/, support/).\n\n"
+            "Si el repo aún no tiene rama `develop`, git-flow la creará "
+            "automáticamente. Una vez inicializado, reintenta el comando "
+            "original."
+        ),
+    )
+
+
 BASH_CHECKS = [
     check_force_push,
     check_commit_on_main,
@@ -229,6 +322,7 @@ BASH_CHECKS = [
     check_reset_hard,
     check_clean_force,
     check_sensitive_files,
+    check_gitflow_not_initialized,
 ]
 
 
@@ -251,27 +345,42 @@ def check_edit_on_main(file_path: str) -> None:
     main/master. Permite develop (el skill `git` maneja la excepción de
     commit directo en develop cuando el usuario lo pide explícitamente).
     Permite archivos fuera de cualquier repo git.
+
+    Excepción: si el repo aún no tiene commits (primer setup), se permite
+    editar para poder preparar el `chore: initial commit`.
     """
     branch = branch_of_file(file_path)
     if branch is None:
         return  # No es un repo git
 
-    if branch in PROTECTED_BRANCHES:
-        block(
-            f"Bloqueado: estás parado en `{branch}` y no se permite modificar "
-            f"archivos directamente sobre la rama de producción. Antes de "
-            f"editar `{file_path}`, crea una rama de trabajo.",
-            hint=(
-                "Flujo sugerido:\n"
-                "  1. Preguntarle al usuario qué tipo de cambio es "
-                "(feature, fix, hotfix, chore, refactor).\n"
-                "  2. Proponer un nombre de rama en kebab-case y confirmarlo.\n"
-                "  3. Crear la rama con `git flow <tipo> start <nombre>` "
-                "(para feature/hotfix/release) o `git checkout -b "
-                "<tipo>/<nombre>` desde develop (para fix/refactor/chore).\n"
-                "  4. Una vez en la rama, reintentar la edición."
-            ),
-        )
+    if branch not in PROTECTED_BRANCHES:
+        return
+
+    # Excepción: repo sin commits — permitir ediciones del primer setup
+    # Resolvemos cwd relativo al archivo para consultar ese repo específico.
+    try:
+        resolved = Path(file_path).expanduser().resolve()
+        cwd = str(resolved if resolved.is_dir() else resolved.parent)
+    except (OSError, RuntimeError):
+        cwd = None
+    if not repo_has_commits(cwd=cwd):
+        return
+
+    block(
+        f"Bloqueado: estás parado en `{branch}` y no se permite modificar "
+        f"archivos directamente sobre la rama de producción. Antes de "
+        f"editar `{file_path}`, crea una rama de trabajo.",
+        hint=(
+            "Flujo sugerido:\n"
+            "  1. Preguntarle al usuario qué tipo de cambio es "
+            "(feature, fix, hotfix, chore, refactor).\n"
+            "  2. Proponer un nombre de rama en kebab-case y confirmarlo.\n"
+            "  3. Crear la rama con `git flow <tipo> start <nombre>` "
+            "(para feature/hotfix/release) o `git checkout -b "
+            "<tipo>/<nombre>` desde develop (para fix/refactor/chore).\n"
+            "  4. Una vez en la rama, reintentar la edición."
+        ),
+    )
 
 
 # --------------------------------------------------------------------------- #
