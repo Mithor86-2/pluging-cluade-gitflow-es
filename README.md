@@ -1,4 +1,4 @@
-# Mithor86-claude-plugins
+# Mithor86-2-claude-plugins
 
 Marketplace personal de plugins de Claude Code. Por ahora contiene un plugin:
 
@@ -29,14 +29,14 @@ Desde Claude Code, una sola vez por máquina:
 
 Opciones:
 
-- **GitHub público/privado:** `/plugin marketplace add Mithor86-2/pluging-cluade-gitflow-es`
-- **URL completa:** `/plugin marketplace add https://github.com/Mithor86-2/pluging-cluade-gitflow-es`
-- **Ruta local** (para desarrollo): `/plugin marketplace add /ruta/absoluta/a/pluging-cluade-gitflow-es`
+- **GitHub público/privado:** `/plugin marketplace add Mithor86-2/Mithor86-2-claude-plugins`
+- **URL completa:** `/plugin marketplace add https://github.com/Mithor86-2/Mithor86-2-claude-plugins`
+- **Ruta local** (para desarrollo): `/plugin marketplace add /ruta/absoluta/a/Mithor86-2-claude-plugins`
 
 ### 3. Instalar el plugin
 
 ```
-/plugin install gitflow-es@Mithor86
+/plugin install gitflow-es@Mithor86-2
 ```
 
 Eso instala los skills (`git` y `commit`), el subagente (`feature-doc-writer`), los hooks de seguridad y contexto, y las rules empotradas.
@@ -66,29 +66,29 @@ Abre Claude Code en un repo git cualquiera. Al iniciar, deberías ver un bloque 
 Cuando se publique una nueva versión:
 
 ```
-/plugin marketplace update Mithor86
+/plugin marketplace update Mithor86-2
 /reload-plugins
 ```
 
 Si hay cambios incompatibles o no se recargan:
 
 ```
-/plugin uninstall gitflow-es@Mithor86
-/plugin install gitflow-es@Mithor86
+/plugin uninstall gitflow-es@Mithor86-2
+/plugin install gitflow-es@Mithor86-2
 /reload-plugins
 ```
 
 ## Desinstalar
 
 ```
-/plugin uninstall gitflow-es@Mithor86
-/plugin marketplace remove Mithor86
+/plugin uninstall gitflow-es@Mithor86-2
+/plugin marketplace remove Mithor86-2
 ```
 
 ## Estructura del repo
 
 ```
-pluging-cluade-gitflow-es/
+Mithor86-2-claude-plugins/
 ├── .claude-plugin/
 │   └── marketplace.json                  ← catálogo del marketplace
 ├── plugins/
@@ -117,7 +117,7 @@ pluging-cluade-gitflow-es/
 
 1. Crear una carpeta nueva en `plugins/<nombre-del-plugin>/` con su propio `.claude-plugin/plugin.json`.
 2. Agregar la entrada correspondiente en `.claude-plugin/marketplace.json`, en el array `plugins`.
-3. Commit, push, y pedir a quien lo use que corra `/plugin marketplace update Mithor86` seguido de `/plugin install <nombre>@Mithor86`.
+3. Commit, push, y pedir a quien lo use que corra `/plugin marketplace update Mithor86-2` seguido de `/plugin install <nombre>@Mithor86-2`.
 
 ## Publicar el repo
 
@@ -129,16 +129,16 @@ Para que el `/plugin marketplace add` funcione, este repo debe estar accesible p
 ### Primer push
 
 ```bash
-cd pluging-cluade-gitflow-es
+cd Mithor86-2-claude-plugins
 git init -b main
 git add .
 git commit -m "chore: initial release — gitflow-es v0.5.2"
 
 # Con gh CLI (recomendado)
-gh repo create Mithor86-2/pluging-cluade-gitflow-es --public --source=. --remote=origin --push
+gh repo create Mithor86-2/Mithor86-2-claude-plugins --public --source=. --remote=origin --push
 
 # O sin gh CLI
-git remote add origin git@github.com:Mithor86-2/pluging-cluade-gitflow-es.git
+git remote add origin git@github.com:Mithor86-2/Mithor86-2-claude-plugins.git
 git push -u origin main
 
 # Tag de versión
